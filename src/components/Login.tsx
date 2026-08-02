@@ -1,18 +1,21 @@
 import { useState } from "react";
 
 import { ApiError, type Session, aAccesPilotage, login, loginVerify } from "../api.js";
+import { useMarque } from "../useMarque.js";
 
 interface LoginProps {
   onAuth: (session: Session) => void;
 }
 
 export function Login({ onAuth }: LoginProps): JSX.Element {
+  const marque = useMarque();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [faireConfiance, setFaireConfiance] = useState(false);
   const [otpRequired, setOtpRequired] = useState(false);
   const [canal, setCanal] = useState<string | null>(null);
+  const [alerteEmail, setAlerteEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,6 +42,7 @@ export function Login({ onAuth }: LoginProps): JSX.Element {
       if (result.otpRequired) {
         setOtpRequired(true);
         setCanal(result.canal);
+        setAlerteEmail(result.alerteEmail);
         return;
       }
       if (result.session) await finaliser(result.session);
@@ -53,9 +57,9 @@ export function Login({ onAuth }: LoginProps): JSX.Element {
     <div className="auth">
       <form onSubmit={submit} className="auth-card">
         <div className="brand brand-lg">
-          <span className="brand-logo" aria-hidden="true">A</span>
+          <span className="brand-logo" aria-hidden="true">{marque.initiale}</span>
           <span className="brand-text">
-            ADSUM
+            {marque.marque}
             <span className="brand-sub">Pilotage</span>
           </span>
         </div>
@@ -96,6 +100,7 @@ export function Login({ onAuth }: LoginProps): JSX.Element {
             <p className="muted small">
               Un code de vérification vous a été envoyé{canal === "telegram" ? " sur Telegram" : " par courriel"}. Saisissez-le pour continuer.
             </p>
+            {alerteEmail && <p className="banner banner-warn small">{alerteEmail}</p>}
             <label>
               <span>Code de vérification</span>
               <input type="text" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required />

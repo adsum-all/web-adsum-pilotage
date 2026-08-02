@@ -4,6 +4,7 @@ import { ApiError, type PilotageMoi, type Session, getPilotageMoi } from "./api.
 import { Login } from "./components/Login.js";
 import { AssiduitePage, CollaborationPage, PerimetrePage, RapportsPage, TagsPage } from "./components/Pages.js";
 import { Activites, Consultations, Membres, TableauBord } from "./components/Pilotage.js";
+import { useMarque } from "./useMarque.js";
 import { useResource } from "./useResource.js";
 
 const SESSION_KEY = "adsum.pilotage.token";
@@ -74,6 +75,7 @@ export function App(): JSX.Element {
 }
 
 function Shell({ session, onLogout }: { session: Session; onLogout: () => void }): JSX.Element {
+  const marque = useMarque();
   const onExpired = useCallback(
     (err: unknown) => {
       if (err instanceof ApiError && err.status === 401) onLogout();
@@ -89,9 +91,9 @@ function Shell({ session, onLogout }: { session: Session; onLogout: () => void }
     <div style={shell}>
       <aside style={navOpen ? { ...sidebar, ...sidebarOpenMobile } : sidebar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 6px 16px" }}>
-          <span style={logo}>A</span>
+          <span style={logo}>{marque.initiale}</span>
           <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>ADSUM</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{marque.marque}</div>
             <div style={{ fontSize: 11, color: "var(--adsum-muted,#8a8a94)" }}>Pilotage</div>
           </div>
         </div>
