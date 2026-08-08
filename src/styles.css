@@ -905,20 +905,45 @@ h3 {
   margin-bottom: 18px;
 }
 
-.kpi {
+/* Scoped to this row on purpose. The dashboard already styles .kpi and paints
+   .kpi-accent with a dark gradient and white text; an unscoped light background here
+   won that cascade for the background only, and the accent card rendered white on
+   white. Every rule below is bound to .kpi-rangee so the two never meet again. */
+.kpi-rangee .kpi {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 13px 15px;
-  border: 1px solid var(--line, #e3e7f0);
+  border: 1px solid var(--adsum-line, #e3e7f0);
   border-radius: 12px;
-  background: var(--panel, #fff);
+  background: var(--adsum-panel, #fff);
+  color: var(--adsum-ink, #101427);
+  box-shadow: none;
 }
 
-.kpi-accent { border-color: var(--acc, #2a4fad); box-shadow: inset 3px 0 0 var(--acc, #2a4fad); }
-.kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mut, #5b6480); }
-.kpi-valeur { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.kpi-aide { font-size: 10.5px; color: var(--faint, #8a92a8); line-height: 1.45; }
+.kpi-rangee .kpi-accent {
+  background: var(--adsum-panel, #fff);
+  border-color: var(--adsum-acc, #2a4fad);
+  box-shadow: inset 3px 0 0 var(--adsum-acc, #2a4fad);
+  color: var(--adsum-ink, #101427);
+}
+
+.kpi-rangee .kpi-label,
+.kpi-rangee .kpi-accent .kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--adsum-mut, #5b6480);
+}
+
+.kpi-rangee .kpi-valeur { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.kpi-rangee .kpi-aide,
+.kpi-rangee .kpi-accent .kpi-aide {
+  font-size: 10.5px;
+  color: var(--adsum-faint, #8a92a8);
+  line-height: 1.45;
+}
 
 .barre-filtres { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
 
