@@ -298,3 +298,71 @@ export async function getParticipationGlobal(token: string): Promise<Participati
   }
   return (await res.json()) as ParticipationGlobal;
 }
+
+// --- Absences et excuses -----------------------------------------------------
+
+export interface AbsenceLigne {
+  evenement_id: string;
+  membre_id: string;
+  membre: string;
+  matricule: string | null;
+  activite: string | null;
+  date: string | null;
+  motif: string | null;
+  motif_libelle: string;
+  commentaire: string | null;
+  qualification: "en_attente" | "excusee" | "non_excusee";
+  decide_le: string | null;
+  decideur: string | null;
+  decision_commentaire: string | null;
+  declare_le: string | null;
+}
+
+export interface AbsencesPage {
+  absences: AbsenceLigne[];
+  total: number;
+  limite: number;
+  decalage: number;
+}
+
+export interface SyntheseAbsences {
+  en_attente: number;
+  excusees: number;
+  non_excusees: number;
+  absences_totales: number;
+  /** Absences carrying a reason, which are the only ones awaiting a decision. */
+  avec_motif: number;
+  taux_excusees: number;
+  par_motif: { libelle: string; nombre: number }[];
+}
+
+export function getAbsences(
+  token: string,
+  opts: { qualification?: string; tri?: string; limite?: number; decalage?: number } = {},
+): Promise<AbsencesPage> {
+  const p = new URLSearchParams();
+  if (opts.qualification) p.set("qualification", opts.qualification);
+  if (opts.tri) p.set("tri", opts.tri);
+  p.set("limite", String(opts.limite ?? 20));
+  p.set("decalage", String(opts.decalage ?? 0));
+  return authGet<AbsencesPage>(`/api/v1/pilotage/absences?${p.toString()}`, token, "Absences");
+}
+
+export const getSyntheseAbsences = (t: string) =>
+  authGet<SyntheseAbsences>("/api/v1/pilotage/absences/synthese", t, "Synthèse des absences");
+
+/** Excuse an absence, refuse it, or send it back for review. Always traced. */
+export function qualifierAbsence(
+  token: string,
+  evenementId: string,
+  membreId: string,
+  decision: { qualification: string; commentaire?: string },
+): Promise<{ qualification: string; avant: string }> {
+  return authSend(
+    `/api/v1/pilotage/absences/${evenementId}/${membreId}`,
+    token,
+    "PUT",
+    decision,
+    "Décision",
+  );
+}

@@ -5,6 +5,7 @@ import { Login } from "./components/Login.js";
 import { AssiduitePage, CollaborationPage, PerimetrePage, RapportsPage, TagsPage } from "./components/Pages.js";
 import { Activites, Consultations, Membres, TableauBord } from "./components/Pilotage.js";
 import { useMarque } from "./useMarque.js";
+import { Absences } from "./components/Absences.js";
 import { useResource } from "./useResource.js";
 
 const SESSION_KEY = "adsum.pilotage.token";
@@ -42,6 +43,7 @@ type PageId =
   | "activites"
   | "consultations"
   | "membres"
+  | "absences"
   | "assiduite"
   | "tags"
   | "rapports"
@@ -53,6 +55,7 @@ const MENU: { id: PageId; label: string; icon: string }[] = [
   { id: "activites", label: "Activités", icon: "🗓" },
   { id: "consultations", label: "Consultations", icon: "🗳" },
   { id: "membres", label: "Membres", icon: "👥" },
+  { id: "absences", label: "Absences & excuses", icon: "◷" },
   { id: "assiduite", label: "Assiduité", icon: "📈" },
   { id: "tags", label: "Tags", icon: "🏷" },
   { id: "rapports", label: "Rapports", icon: "📄" },
@@ -162,6 +165,8 @@ function renderPage(page: PageId, token: string, moi: PilotageMoi): JSX.Element 
       return <Consultations token={token} moi={moi} />;
     case "membres":
       return <Membres token={token} />;
+    case "absences":
+      return <Absences token={token} />;
     case "assiduite":
       return <AssiduitePage token={token} />;
     case "tags":
