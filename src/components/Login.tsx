@@ -1,31 +1,51 @@
 import { useState } from "react";
 
-import { ApiError, type Session, login } from "../api.js";
+import { ApiError, type Session, aAccesPilotage, login, loginVerify } from "../api.js";
+import { useMarque } from "../useMarque.js";
 
 interface LoginProps {
   onAuth: (session: Session) => void;
 }
 
-const ALLOWED = new Set(["direction", "admin", "super_admin"]);
-
 export function Login({ onAuth }: LoginProps): JSX.Element {
+  const marque = useMarque();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [faireConfiance, setFaireConfiance] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [canal, setCanal] = useState<string | null>(null);
+  const [alerteEmail, setAlerteEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  async function finaliser(session: Session): Promise<void> {
+    // Access is scope-based: authorized when the account resolves a perimeter.
+    if (!(await aAccesPilotage(session.token))) {
+      setError("Votre compte n'est pas encore responsable d'un perimetre. Contactez l'administration.");
+      return;
+    }
+    onAuth(session);
+  }
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const session = await login(email, password);
-      if (!ALLOWED.has(session.role)) {
-        setError("Accès réservé à la direction.");
+      if (otpRequired) {
+        await finaliser(await loginVerify(email, password, code.trim(), faireConfiance));
         return;
       }
-      onAuth(session);
+      const result = await login(email, password);
+      if (result.otpRequired) {
+        setOtpRequired(true);
+        setCanal(result.canal);
+        setAlerteEmail(result.alerteEmail);
+        return;
+      }
+      if (result.session) await finaliser(result.session);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erreur réseau");
     } finally {
@@ -37,66 +57,66 @@ export function Login({ onAuth }: LoginProps): JSX.Element {
     <div className="auth">
       <form onSubmit={submit} className="auth-card">
         <div className="brand brand-lg">
-          <span className="brand-logo" aria-hidden="true">
-            A
-          </span>
+          <span className="brand-logo" aria-hidden="true">{marque.initiale}</span>
           <span className="brand-text">
-            ADSUM
-            <span className="brand-sub">Direction</span>
+            {marque.marque}
+            <span className="brand-sub">Pilotage</span>
           </span>
         </div>
-        <label>
-          <span>Courriel</span>
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          <span>Mot de passe</span>
-          <div className="pw-field">
-            <input
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button
-              type="button"
-              className="pw-toggle"
-              aria-pressed={showPassword}
-              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              {showPassword ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 4.24A9.1 9.1 0 0112 4c5 0 9 4.5 10 8a13 13 0 01-2.3 3.5M6.1 6.1C3.9 7.6 2.5 9.7 2 12c1 3.5 5 8 10 8a9.3 9.3 0 004.1-.9"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M2 12c1-3.5 5-8 10-8s9 4.5 10 8c-1 3.5-5 8-10 8s-9-4.5-10-8z"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </label>
+
+        {!otpRequired && (
+          <>
+            <label>
+              <span>Courriel</span>
+              <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </label>
+            <label>
+              <span>Mot de passe</span>
+              <div className="pw-field">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="pw-toggle"
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  {showPassword ? "Masquer" : "Afficher"}
+                </button>
+              </div>
+            </label>
+          </>
+        )}
+
+        {otpRequired && (
+          <>
+            <p className="muted small">
+              Un code de vérification vous a été envoyé{canal === "telegram" ? " sur Telegram" : " par courriel"}. Saisissez-le pour continuer.
+            </p>
+            {alerteEmail && <p className="banner banner-warn small">{alerteEmail}</p>}
+            <label>
+              <span>Code de vérification</span>
+              <input type="text" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required />
+            </label>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="checkbox" checked={faireConfiance} onChange={(e) => setFaireConfiance(e.target.checked)} />
+              <span className="small">Faire confiance à cet appareil pendant 30 jours</span>
+            </label>
+          </>
+        )}
+
         {error && <p className="auth-error">{error}</p>}
         <button type="submit" className="btn btn-primary" disabled={busy}>
-          {busy ? "Connexion..." : "Se connecter"}
+          {busy ? "Connexion..." : otpRequired ? "Valider le code" : "Se connecter"}
         </button>
-        <p className="muted small center">Vue consolidée, lecture seule.</p>
+        <p className="muted small center">Pilotage de votre perimetre.</p>
       </form>
     </div>
   );

@@ -35,17 +35,67 @@ export class ApiError extends Error {
   }
 }
 
-export async function login(email: string, password: string): Promise<Session> {
+export function deviceId(): string {
+  if (typeof localStorage === "undefined") return "";
+  let id = localStorage.getItem("adsum.device.id");
+  if (!id) {
+    id = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem("adsum.device.id", id);
+  }
+  return id;
+}
+
+export interface LoginResult {
+  otpRequired: boolean;
+  session: Session | null;
+  canal: string | null;
+  /** Why the mailbox refused our last messages, when it did. Null otherwise. */
+  alerteEmail: string | null;
+}
+
+function loginError(status: number): ApiError {
+  if (status === 401) return new ApiError("Identifiants invalides ou mot de passe temporaire expiré", status);
+  if (status === 429) return new ApiError("Trop de tentatives. Patientez quelques minutes, puis réessayez.", status);
+  if (status === 400) return new ApiError("Code incorrect ou expiré. Vérifiez et réessayez.", status);
+  return new ApiError("Service momentanément indisponible.", status);
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   const res = await fetch(`${BASE}/api/v1/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Device-Id": deviceId() },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) {
-    throw new ApiError(res.status === 401 ? "Identifiants invalides" : "Service indisponible", res.status);
-  }
-  const data = (await res.json()) as { access_token: string; role?: Role };
+  if (!res.ok) throw loginError(res.status);
+  const data = (await res.json()) as { otp_required?: boolean; access_token?: string | null; role?: Role; canal?: string | null; alerte_email?: string | null };
+  return {
+    otpRequired: Boolean(data.otp_required),
+    session: data.access_token ? { token: data.access_token, role: data.role ?? "" } : null,
+    canal: data.canal ?? null,
+    alerteEmail: data.alerte_email ?? null,
+  };
+}
+
+export async function loginVerify(email: string, password: string, code: string, faireConfiance: boolean): Promise<Session> {
+  const res = await fetch(`${BASE}/api/v1/auth/login-verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Device-Id": deviceId() },
+    body: JSON.stringify({ email, password, code, faire_confiance: faireConfiance }),
+  });
+  if (!res.ok) throw loginError(res.status);
+  const data = (await res.json()) as { access_token?: string | null; role?: Role };
+  if (!data.access_token) throw loginError(401);
   return { token: data.access_token, role: data.role ?? "" };
+}
+
+/** Pilotage access is scope-based (responsable de perimetre), not a single
+ * permission: the server resolves the caller's perimeter. We consider the account
+ * authorized when GET /pilotage/moi succeeds (200); a non-responsable gets 403. */
+export async function aAccesPilotage(token: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/api/v1/pilotage/moi`, { headers: { Authorization: `Bearer ${token}` } });
+  return res.ok;
 }
 
 export async function getStatistiques(token: string): Promise<Statistiques> {
@@ -247,4 +297,72 @@ export async function getParticipationGlobal(token: string): Promise<Participati
     throw new ApiError(message, res.status);
   }
   return (await res.json()) as ParticipationGlobal;
+}
+
+// --- Absences et excuses -----------------------------------------------------
+
+export interface AbsenceLigne {
+  evenement_id: string;
+  membre_id: string;
+  membre: string;
+  matricule: string | null;
+  activite: string | null;
+  date: string | null;
+  motif: string | null;
+  motif_libelle: string;
+  commentaire: string | null;
+  qualification: "en_attente" | "excusee" | "non_excusee";
+  decide_le: string | null;
+  decideur: string | null;
+  decision_commentaire: string | null;
+  declare_le: string | null;
+}
+
+export interface AbsencesPage {
+  absences: AbsenceLigne[];
+  total: number;
+  limite: number;
+  decalage: number;
+}
+
+export interface SyntheseAbsences {
+  en_attente: number;
+  excusees: number;
+  non_excusees: number;
+  absences_totales: number;
+  /** Absences carrying a reason, which are the only ones awaiting a decision. */
+  avec_motif: number;
+  taux_excusees: number;
+  par_motif: { libelle: string; nombre: number }[];
+}
+
+export function getAbsences(
+  token: string,
+  opts: { qualification?: string; tri?: string; limite?: number; decalage?: number } = {},
+): Promise<AbsencesPage> {
+  const p = new URLSearchParams();
+  if (opts.qualification) p.set("qualification", opts.qualification);
+  if (opts.tri) p.set("tri", opts.tri);
+  p.set("limite", String(opts.limite ?? 20));
+  p.set("decalage", String(opts.decalage ?? 0));
+  return authGet<AbsencesPage>(`/api/v1/pilotage/absences?${p.toString()}`, token, "Absences");
+}
+
+export const getSyntheseAbsences = (t: string) =>
+  authGet<SyntheseAbsences>("/api/v1/pilotage/absences/synthese", t, "Synthèse des absences");
+
+/** Excuse an absence, refuse it, or send it back for review. Always traced. */
+export function qualifierAbsence(
+  token: string,
+  evenementId: string,
+  membreId: string,
+  decision: { qualification: string; commentaire?: string },
+): Promise<{ qualification: string; avant: string }> {
+  return authSend(
+    `/api/v1/pilotage/absences/${evenementId}/${membreId}`,
+    token,
+    "PUT",
+    decision,
+    "Décision",
+  );
 }
