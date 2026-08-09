@@ -890,3 +890,183 @@ h3 {
     grid-template-columns: 110px 1fr 40px;
   }
 }
+
+/* --- Absences et excuses ---------------------------------------------------
+ *
+ * A queue of decisions somebody works through, so the reason and the person come
+ * first and the buttons sit where the eye lands after reading them. Every figure
+ * carries its count: a rate alone lets three people read as three hundred.
+ */
+
+.kpi-rangee {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* Scoped to this row on purpose. The dashboard already styles .kpi and paints
+   .kpi-accent with a dark gradient and white text; an unscoped light background here
+   won that cascade for the background only, and the accent card rendered white on
+   white. Every rule below is bound to .kpi-rangee so the two never meet again. */
+.kpi-rangee .kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 15px;
+  border: 1px solid var(--adsum-line, #e3e7f0);
+  border-radius: 12px;
+  background: var(--adsum-panel, #fff);
+  color: var(--adsum-ink, #101427);
+  box-shadow: none;
+}
+
+.kpi-rangee .kpi-accent {
+  background: var(--adsum-panel, #fff);
+  border-color: var(--adsum-acc, #2a4fad);
+  box-shadow: inset 3px 0 0 var(--adsum-acc, #2a4fad);
+  color: var(--adsum-ink, #101427);
+}
+
+.kpi-rangee .kpi-label,
+.kpi-rangee .kpi-accent .kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--adsum-mut, #5b6480);
+}
+
+.kpi-rangee .kpi-valeur { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.kpi-rangee .kpi-aide,
+.kpi-rangee .kpi-accent .kpi-aide {
+  font-size: 10.5px;
+  color: var(--adsum-faint, #8a92a8);
+  line-height: 1.45;
+}
+
+.barre-filtres { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.puce {
+  padding: 6px 13px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 999px;
+  background: var(--panel, #fff);
+  color: var(--ink2, #29304a);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.puce.est-active { border-color: var(--acc, #2a4fad); background: var(--acc, #2a4fad); color: #fff; }
+
+.absences { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.absence {
+  padding: 13px 15px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 12px;
+  background: var(--panel, #fff);
+}
+
+.absence-tete { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.absence-tete p { margin: 2px 0 0; }
+.absence-motif { margin: 9px 0; font-size: 13px; color: var(--ink, #101427); }
+
+.absence-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.absence-actions input {
+  flex: 1;
+  min-width: 190px;
+  padding: 7px 10px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.etiquette {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etiquette-ok { background: rgba(31, 138, 91, 0.14); color: #16603f; }
+.etiquette-warn { background: rgba(181, 115, 26, 0.16); color: #7a4d0d; }
+.etiquette-danger { background: rgba(192, 57, 43, 0.15); color: #8c2820; }
+.etiquette-neutre { background: rgba(90, 100, 128, 0.12); color: #454d63; }
+
+.btn-danger { background: #c0392b; color: #fff; border-color: #c0392b; }
+.btn-danger:hover { background: #a83226; }
+
+.vide {
+  padding: 30px 16px;
+  text-align: center;
+  color: var(--faint, #8a92a8);
+  background: var(--board, #eef1f7);
+  border-radius: 12px;
+}
+
+.carte {
+  padding: 15px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 12px;
+  background: var(--panel, #fff);
+}
+
+.carte h3 { margin: 0 0 4px; font-size: 14px; }
+
+.motifs { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; }
+.motifs li { display: grid; grid-template-columns: minmax(150px, 1.4fr) 3fr 40px; align-items: center; gap: 10px; font-size: 12.5px; }
+.motifs-barre { height: 8px; border-radius: 999px; background: var(--board, #eef1f7); overflow: hidden; }
+.motifs-barre span { display: block; height: 100%; background: var(--acc, #2a4fad); border-radius: inherit; }
+.motifs strong { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* --- Pagination ------------------------------------------------------------ */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, #e3e7f0);
+  font-size: 12.5px;
+}
+
+.pagination-taille { display: flex; align-items: center; gap: 6px; color: var(--mut, #5b6480); }
+.pagination-taille select {
+  padding: 5px 8px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 7px;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.pagination-position { color: var(--mut, #5b6480); font-variant-numeric: tabular-nums; }
+.pagination-boutons { display: flex; align-items: center; gap: 6px; }
+
+.pagination-boutons button {
+  padding: 5px 11px;
+  border: 1px solid var(--line, #e3e7f0);
+  border-radius: 7px;
+  background: var(--panel, #fff);
+  color: var(--ink2, #29304a);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.pagination-boutons button:disabled { opacity: 0.45; cursor: not-allowed; }
+.pagination-page { color: var(--mut, #5b6480); padding: 0 4px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .pagination { justify-content: center; }
+  .motifs li { grid-template-columns: 1fr 40px; }
+  .motifs-barre { grid-column: 1 / -1; }
+}
